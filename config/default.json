@@ -1,0 +1,4 @@
+{
+    "mongoDBConnection" : "mongodb+srv://jenilsoni:12345@cluster0.akgs1.mongodb.net/Phase2?retryWrites=true&w=majority",
+    "jwtsecret": "secret"
+}

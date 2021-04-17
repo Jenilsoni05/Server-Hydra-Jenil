@@ -1,0 +1,77 @@
+const express = require('express');
+const router = express.Router();
+
+const { check, validationResult } = require('express-validator');
+
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
+const config = require('config');
+
+let User = require('../../model/User');
+
+
+
+//route post api/user
+//desc insert User
+//access public
+router.post(
+  '/',
+  [
+    check('name', 'Name is required')
+      .not()
+      .isEmpty(),
+    check('email', 'Please enter valid email').isEmail(),
+    check('password', 'please enter password with 3 or more').isLength({
+      min: 3
+    })
+  ],
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(422).json({ errors: errors.array() });
+    }
+
+    try {
+      //check if user email is already in the database
+      let user1 = await User.findOne({ email: req.body.email });
+      if (user1) {
+        return res.status(400).json({ error: [{ msg: 'user already exits' }] });
+      }
+      
+       //hash the password
+       hashPass = await bcrypt.hash(req.body.password, 12);
+      //create a user
+      const newUser = new User({
+        name: req.body.name,
+        email: req.body.email,
+        password: hashPass
+      });
+
+     
+      //save the user
+      await newUser.save();
+
+      //generate token
+      const payload = {
+        user: {
+          id: newUser.id,
+          name: newUser.name
+        }
+      };
+
+      jwt.sign(
+        payload,
+        config.get('jwtsecret'),
+        { expiresIn: 360000 },
+        (err, token) => {
+          if (err) throw err;
+          res.json({ token });
+        }
+      );
+    } catch (err) {
+      res.status(500).send(err.message);
+    }
+  }
+);
+
+module.exports = router;
